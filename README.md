@@ -1,5 +1,5 @@
 <h1 align="center"> 🍝 PASTA: Post-hoc Attention Steering for LLMs 🍝 </h1>
-<p align="center"> <b>Tell Your Model Where to Attend: Post-hoc Attention Steering for LLMs</b> (<a href="https://arxiv.org/abs/2310.14034">Zhang et al. 2023</a>). 
+<p align="center"> <b>Tell Your Model Where to Attend: Post-hoc Attention Steering for LLMs</b> (<a href="https://arxiv.org">Zhang et al. 2023</a>). 
 </p>
 
 <p align="center">
