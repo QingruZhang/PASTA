@@ -16,18 +16,19 @@
 1. Install `pastalib`:
 
 ```bash
-pip install -e .
+pip install pastalib
 # Alternatively,  
-# pip install pastalib
+# clone then pip install -e .
 # pip install git+https://github.com/QingruZhang/PASTA
 ```
 
-2. Initialize PASTA along with a pre-trained LLM.
+2. Initialize a pre-trained LLM and PASTA.
  
 ```python
 from pastalib.pasta import PASTA 
 from transformers import AutoModelForCausalLM,AutoTokenizer
 
+# Initialize pre-trained LLM
 name = "huggyllama/llama-7b"
 model = AutoModelForCausalLM.from_pretrained(name)
 tokenizer = AutoTokenizer.from_pretrained(name)
@@ -56,13 +57,13 @@ pasta = PASTA(
 # Model Input 
 texts = ["Mary is a doctor. She obtains her bachelor degree from ... Return her occupation in JSON format."]
 
-# ===== Before =====
+# ===== Without PASTA =====
 # inputs = tokenizer(texts, return_tensors="pt")
 # outputs = model.generate(**inputs)
 # ---------------------
 # ["Mary is a doctor"]  # returns answer in the wrong format
 
-# ===== After =====
+# ===== With PASTA =====
 inputs, offset_mapping = pasta.inputs_from_batch(texts)
 # User highlighs specific input spans
 emphasized_texts = ["Return her occupation in JSON format"]
