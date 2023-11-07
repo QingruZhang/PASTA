@@ -213,12 +213,12 @@ Please contact us or post an issue if you have any questions:
 
 ```r
 @misc{zhang2023tell,
-      title={Tell Your Model Where to Attend: Post-hoc Attention Steering for LLMs}, 
-      author={Qingru Zhang and Chandan Singh and Liyuan Liu and Xiaodong Liu and Bin Yu and Jianfeng Gao and Tuo Zhao},
-      year={2023},
-      eprint={2311.02262},
-      archivePrefix={arXiv},
-      primaryClass={cs.CL}
+    title={Tell Your Model Where to Attend: Post-hoc Attention Steering for LLMs}, 
+    author={Qingru Zhang and Chandan Singh and Liyuan Liu and Xiaodong Liu and Bin Yu and Jianfeng Gao and Tuo Zhao},
+    year={2023},
+    eprint={2311.02262},
+    archivePrefix={arXiv},
+    primaryClass={cs.CL}
 }
 ```
 
