@@ -133,7 +133,7 @@ Then, the preprocessed biasbios dataset file will be saved in `CM_DATA_DIR/biasb
 
 ### Evaluation 
 
-Choose any `head_config` files from `config/head_config` and evaluation the performance of PASTA with the following command. 
+Choose any `head_config` files from `config/head_config` and evaluate the performance of PASTA with the following command. 
 
 **JSON Formatting**
 
