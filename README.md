@@ -65,7 +65,7 @@ texts = ["Mary is a doctor. She obtains her bachelor degree from ... Return her 
 
 # ===== With PASTA =====
 inputs, offset_mapping = pasta.inputs_from_batch(texts)
-# User highlighs specific input spans
+# User highlights specific input spans
 emphasized_texts = ["Return her occupation in JSON format"]
 # PASTA registers the pre_forward_hook to edit attention
 with pasta.apply_steering(
