@@ -122,7 +122,7 @@ export CM_RESULTS_DIR=<results path>
 
 1. For CounterFact, our scripts can automatically download the dataset. 
 
-2. For Bias in Bios, we cannot release the dataset without the authorization. The dataset must be downloaded with [the offical release](https://github.com/microsoft/biosbias). After downloading the data examples into the `BIOS.pkl` file, you can run the following scripts: 
+2. For Bias in Bios, we cannot release the dataset without the authorization. The dataset must be downloaded with [the official release](https://github.com/microsoft/biosbias). After downloading the data examples into the `BIOS.pkl` file, you can run the following scripts: 
 ```bash
 python reformat_dataset.py \
 --biasbios_raw_path <path of BIOS.pkl> \
