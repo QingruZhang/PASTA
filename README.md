@@ -60,7 +60,7 @@ texts = ["Mary is a doctor. She obtains her bachelor degree from UCSD. Answer th
 # inputs = tokenizer(texts, return_tensors="pt")
 # outputs = model.generate(**inputs)
 # ---------------------
-# ["Mary is a doctor"]  # returns answer in the wrong format
+# ["The answer should be in json format."]  # returns answer in the wrong format
 
 # ===== With PASTA =====
 inputs, offset_mapping = pasta.inputs_from_batch(texts)
@@ -76,7 +76,7 @@ with pasta.apply_steering(
 ) as steered_model: 
     outputs = steered_model.generate(**inputs)
 # -------------------------------
-# ["{'occupation': 'doctor'}"]  # returns answer in the correct format
+# ['{"name": "Mary", "occupation": "Doctor", ...}']  # returns answer in the correct format
 ```
 
 ### Additional Note 
