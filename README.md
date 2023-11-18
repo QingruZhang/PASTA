@@ -36,9 +36,8 @@ tokenizer = AutoTokenizer.from_pretrained(name)
 # Select the attention heads to be steered, 
 # following the format of {'layer_id': [head_ids]}: 
 head_config = {
-    '16': [16, 21],
-    '12': [23, 26, 0],
-    '10': [23, 7, 22],
+    "3": [17, 7, 6, 12, 18], "8": [28, 21, 24], "5": [24, 4], 
+    "0": [17], "4": [3], "6": [14], "7": [13], "11": [16], 
 }
 
 # Initialize the PASTA steerer
@@ -55,7 +54,7 @@ pasta = PASTA(
 
 ```python
 # Model Input 
-texts = ["Mary is a doctor. She obtains her bachelor degree from ... Return her occupation in JSON format."]
+texts = ["Mary is a doctor. She obtains her bachelor degree from UCSD. Answer the occupation of Mary and generate the answer as json format."]
 
 # ===== Without PASTA =====
 # inputs = tokenizer(texts, return_tensors="pt")
@@ -66,7 +65,7 @@ texts = ["Mary is a doctor. She obtains her bachelor degree from ... Return her 
 # ===== With PASTA =====
 inputs, offset_mapping = pasta.inputs_from_batch(texts)
 # User highlights specific input spans
-emphasized_texts = ["Return her occupation in JSON format"]
+emphasized_texts = ["Answer the occupation of Mary and generate the answer as json format"]
 # PASTA registers the pre_forward_hook to edit attention
 with pasta.apply_steering(
     model=model, 
