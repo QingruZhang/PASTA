@@ -74,7 +74,7 @@ with pasta.apply_steering(
     model_input=inputs, 
     offsets_mapping=offset_mapping
 ) as steered_model: 
-    outputs = steered_model.generate(**inputs)
+    outputs = steered_model.generate(**inputs, max_new_tokens=128)
 # -------------------------------
 # ['{"name": "Mary", "occupation": "Doctor", ...}']  # returns answer in the correct format
 ```
