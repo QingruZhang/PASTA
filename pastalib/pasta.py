@@ -40,10 +40,12 @@ class PASTA(abc.ABC):
     ATTN_MODULE_NAME = {
         "gptj": "transformer.h.{}.attn",
         "llama": "model.layers.{}.self_attn",
+        "gemma": "model.layers.{}.self_attn",
     }
     ATTENTION_MASK_ARGIDX = {
         "gptj": 2, 
-        "llama": 1, 
+        "llama": 1,
+        "gemma": 1,
     }
     def __init__(
         self, 
@@ -72,6 +74,9 @@ class PASTA(abc.ABC):
         elif isinstance(model, transformers.GPTJForCausalLM):
             self.model_name = "gptj"
             self.num_attn_head = model.config.n_head
+        elif isinstance(model, transformers.GemmaForCausalLM):
+            self.model_name = "gemma"
+            self.num_attn_head = model.config.num_attention_heads
         else:
             raise ValueError("Unimplemented Model Type.")
         
@@ -171,7 +176,7 @@ class PASTA(abc.ABC):
                 attention_mask[bi, head_idx, :, :ti] += scale_constant
                 attention_mask[bi, head_idx, :, tj:input_len] += scale_constant
         
-        if self.model_name == "llama":
+        if (self.model_name == "llama") or (self.model_name == "gemma"):
             attention_mask.old_size = attention_mask.size 
             attention_mask.size = lambda:(bsz, 1, tgt_len, src_len)
         
