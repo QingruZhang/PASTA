@@ -40,12 +40,14 @@ class PASTA(abc.ABC):
     ATTN_MODULE_NAME = {
         "gptj": "transformer.h.{}.attn",
         "llama": "model.layers.{}.self_attn",
+        "mistral": "model.layers.{}.self_attn",
         "gemma": "model.layers.{}.self_attn",
         "phi3mini": "model.layers.{}.self_attn"
     }
     ATTENTION_MASK_ARGIDX = {
         "gptj": 2, 
-        "llama": 1,
+        "llama": 1, 
+        "mistral": 1, 
         "gemma": 1,
     }
     def __init__(
@@ -64,7 +66,7 @@ class PASTA(abc.ABC):
         self.scale_position = scale_position
         self.setup_head_config(head_config)
 
-        assert self.scale_position in ['include', 'exclude']
+        assert self.scale_position in ['include', 'exclude', 'generation']
         assert self.alpha > 0
 
     def setup_model(self, model):
@@ -75,12 +77,14 @@ class PASTA(abc.ABC):
         elif isinstance(model, transformers.GPTJForCausalLM):
             self.model_name = "gptj"
             self.num_attn_head = model.config.n_head
+        elif isinstance(model, transformers.MistralForCausalLM):
+            self.model_name = "mistral"
+            self.num_attn_head = model.config.num_attention_heads
         elif isinstance(model, transformers.GemmaForCausalLM):
             self.model_name = "gemma"
             self.num_attn_head = model.config.num_attention_heads
         elif model.__class__.__name__ == "Phi3ForCausalLM":
-            self.model_name = "phi3mini"
-            self.num_attn_head = model.config.num_attention_heads
+            self.model_name = "phi3"
         else:
             raise ValueError("Unimplemented Model Type.")
         
@@ -180,7 +184,7 @@ class PASTA(abc.ABC):
                 attention_mask[bi, head_idx, :, :ti] += scale_constant
                 attention_mask[bi, head_idx, :, tj:input_len] += scale_constant
         
-        if (self.model_name == "llama") or (self.model_name == "gemma") or (self.model_name == "phi3mini"):
+        if self.model_name in ["llama", "mistral", "gemma", "phi3"]:
             attention_mask.old_size = attention_mask.size 
             attention_mask.size = lambda:(bsz, 1, tgt_len, src_len)
         
@@ -189,6 +193,71 @@ class PASTA(abc.ABC):
             return input_args, input_kwargs
         else:
             return (input_args[:arg_idx], attention_mask, *input_args[arg_idx+1:]), input_kwargs
+
+    def edit_multisection_attention(
+        self, 
+        module: torch.nn.Module, 
+        input_args: tuple,
+        input_kwargs: dict, 
+        head_idx: list[int],
+        token_ranges: list[torch.Tensor], 
+        input_len: int, 
+    ):
+        """
+        The hook function registerred pre-forward for attention models. 
+
+        Args: 
+            module ([`torch.nn.Module`]): The registerred attention modules. 
+            input_args (`tuple`): The positional arguments of forward function. 
+            input_kwargs (`dict`): The keyword arguments of forward function. 
+            head_idx (`list[int]`): The index of heads to be steered. 
+            token_ranges (`torch.Tensor`): A list of B*2 tensors, 
+                suggesting the index range of hightlight tokens of multiple sections.  
+            input_len (`int`): The length L of inputs.
+
+        Returns: 
+            tuple, dict: return the modified `attention_mask`,
+                while not changing other input arguments. 
+        """
+        if "attention_mask" in input_kwargs:
+            attention_mask = input_kwargs['attention_mask'].clone()
+        elif input_args is not None:
+            arg_idx = self.ATTENTION_MASK_ARGIDX[self.model_name]
+            attention_mask = input_args[arg_idx].clone()
+        else:
+            raise ValueError(f"Not found attention masks in {str(module)}")
+        
+        bsz, head_dim, tgt_len, src_len = attention_mask.size()
+        dtype, device = attention_mask.dtype, attention_mask.device
+        if head_dim != self.num_attn_head:
+            attention_mask = attention_mask.expand(
+                bsz, self.num_attn_head, tgt_len, src_len
+            ).clone()
+        scale_constant = torch.Tensor([self.alpha]).to(dtype).to(device).log()
+        
+        for token_range in token_ranges:
+            for bi, (ti,tj) in enumerate(token_range.tolist()):
+                if self.scale_position == "include":
+                    attention_mask[bi, head_idx, :, ti:tj] += scale_constant
+                elif self.scale_position == "exclude":
+                    attention_mask[bi, head_idx, :, :ti] += scale_constant
+                    attention_mask[bi, head_idx, :, tj:input_len] += scale_constant
+                elif self.scale_position == "generation":
+                    attention_mask[bi, head_idx, :, :input_len] += scale_constant 
+                else:
+                    raise ValueError(f"Unexcepted {self.scale_position}.")
+        if self.scale_position == "include":
+            attention_mask[:, head_idx, :, :input_len] -= scale_constant
+        
+        if self.model_name in ["llama", "mistral"]:
+            attention_mask.old_size = attention_mask.size 
+            attention_mask.size = lambda:(bsz, 1, tgt_len, src_len)
+        
+        if "attention_mask" in input_kwargs:
+            input_kwargs['attention_mask'] = attention_mask 
+            return input_args, input_kwargs
+        else:
+            return (input_args[:arg_idx], attention_mask, input_args[arg_idx+1:]), input_kwargs
 
 
     @contextmanager
@@ -199,6 +268,7 @@ class PASTA(abc.ABC):
         substrings: list, 
         model_input: ModelInput, 
         offsets_mapping: Sequence[TokenizerOffsetMapping], 
+        occurrence: int = 0,
     ):
         """
         The function of context manager to register the pre-forward hook on `model`. 
@@ -206,14 +276,20 @@ class PASTA(abc.ABC):
         Args:
             model ([`transformers.PreTrainedModel`]): The transformer model to be steered. 
             strings (`list[str]`): The input strings. 
-            substrings (`list[str]`): The highlighted input spans for each input string. 
+            substrings (`list[list[str]]` or list[str]): The highlighted input spans for each string. 
             model_input (`transformers.BatchEncoding`): The batched model inputs. 
             offsets_mapping (`TokenizerOffsetMapping`): The offset mapping outputed by
                 the tokenizer when encoding the `strings`. 
         """
-        token_range = self.token_ranges_from_batch(
-            strings, substrings, offsets_mapping
-        )
+        if isinstance(substrings[0], str):
+            substrings = [substrings]
+
+        token_ranges = []
+        for sections in substrings:
+            token_range = self.token_ranges_from_batch(
+                strings, sections, offsets_mapping, occurrence=occurrence,
+            )
+            token_ranges.append(token_range)
 
         registered_hooks = []
         for layer_idx in self.all_layers_idx:
@@ -222,9 +298,9 @@ class PASTA(abc.ABC):
             # Prepare the hook function with partial arguments being fixed. 
             # Pass the head_idx, token_range, input_len for each attention module in advance. 
             hook_func = partial(
-                self.edit_attention_mask, 
+                self.edit_multisection_attention, 
                 head_idx = self.head_config[layer_idx],
-                token_range = token_range, 
+                token_ranges = token_ranges, 
                 input_len = model_input['input_ids'].size(-1)
             )
             registered_hook = module.register_forward_pre_hook(hook_func, with_kwargs=True)
@@ -251,7 +327,7 @@ class PASTA(abc.ABC):
             inputs = tokenizer(
                 text,
                 return_tensors="pt",
-                truncation=True,
+                truncation=False,
                 padding="longest",
                 return_offsets_mapping=True,
             )
