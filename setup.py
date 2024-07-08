@@ -9,7 +9,7 @@ install_requires = [
 
 setup(
     name="pastalib",
-    version="0.1.2",
+    version="0.1.3",
     author="Qingru Zhang, Chandan Singh, Lucas Liu, Xiaodong Liu, Bin Yu, Jianfeng Gao, Tuo Zhao",
     author_email="qingru.zhang@gatech.edu",
     description="PyTorch Implementation for PASTA, A Post-hoc Attention Steering Approach that enables users to emphasize specific contexts for LLMs.",
