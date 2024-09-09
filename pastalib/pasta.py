@@ -84,7 +84,8 @@ class PASTA(abc.ABC):
             self.model_name = "gemma"
             self.num_attn_head = model.config.num_attention_heads
         elif model.__class__.__name__ == "Phi3ForCausalLM":
-            self.model_name = "phi3"
+            self.model_name = "phi3mini"
+            self.num_attn_head = model.config.num_attention_heads
         else:
             raise ValueError("Unimplemented Model Type.")
         
