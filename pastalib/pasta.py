@@ -250,7 +250,7 @@ class PASTA(abc.ABC):
         if self.scale_position == "include":
             attention_mask[:, head_idx, :, :input_len] -= scale_constant
         
-        if self.model_name in ["llama", "mistral"]:
+        if self.model_name in ["llama", "mistral", "phi3mini"]:
             attention_mask.old_size = attention_mask.size 
             attention_mask.size = lambda:(bsz, 1, tgt_len, src_len)
         
