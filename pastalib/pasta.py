@@ -84,7 +84,8 @@ class PASTA(abc.ABC):
             self.model_name = "gemma"
             self.num_attn_head = model.config.num_attention_heads
         elif model.__class__.__name__ == "Phi3ForCausalLM":
-            self.model_name = "phi3"
+            self.model_name = "phi3mini"
+            self.num_attn_head = model.config.num_attention_heads
         else:
             raise ValueError("Unimplemented Model Type.")
         
@@ -184,7 +185,7 @@ class PASTA(abc.ABC):
                 attention_mask[bi, head_idx, :, :ti] += scale_constant
                 attention_mask[bi, head_idx, :, tj:input_len] += scale_constant
         
-        if self.model_name in ["llama", "mistral", "gemma", "phi3"]:
+        if self.model_name in ["llama", "mistral", "gemma", "phi3mini"]:
             attention_mask.old_size = attention_mask.size 
             attention_mask.size = lambda:(bsz, 1, tgt_len, src_len)
         
@@ -249,7 +250,7 @@ class PASTA(abc.ABC):
         if self.scale_position == "include":
             attention_mask[:, head_idx, :, :input_len] -= scale_constant
         
-        if self.model_name in ["llama", "mistral"]:
+        if self.model_name in ["llama", "mistral", "phi3mini"]:
             attention_mask.old_size = attention_mask.size 
             attention_mask.size = lambda:(bsz, 1, tgt_len, src_len)
         
