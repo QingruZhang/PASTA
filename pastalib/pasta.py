@@ -223,10 +223,10 @@ class PASTA(abc.ABC):
                 while not changing other input arguments. 
         """
         if "attention_mask" in input_kwargs:
-            attention_mask = input_kwargs['attention_mask'].clone().cpu()
+            attention_mask = input_kwargs['attention_mask'].clone().detach().cpu()
         elif input_args is not None:
             arg_idx = self.ATTENTION_MASK_ARGIDX[self.model_name]
-            attention_mask = input_args[arg_idx].clone().cpu()
+            attention_mask = input_args[arg_idx].clone().detach().cpu()
         else:
             raise ValueError(f"Not found attention masks in {str(module)}")
         
