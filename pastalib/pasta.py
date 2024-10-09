@@ -223,10 +223,10 @@ class PASTA(abc.ABC):
                 while not changing other input arguments. 
         """
         if "attention_mask" in input_kwargs:
-            attention_mask = input_kwargs['attention_mask'].clone().to("cpu")
+            attention_mask = input_kwargs['attention_mask'].clone().cpu()
         elif input_args is not None:
             arg_idx = self.ATTENTION_MASK_ARGIDX[self.model_name]
-            attention_mask = input_args[arg_idx].clone().to("cpu")
+            attention_mask = input_args[arg_idx].clone().cpu()
         else:
             raise ValueError(f"Not found attention masks in {str(module)}")
         
@@ -237,7 +237,7 @@ class PASTA(abc.ABC):
                 bsz, self.num_attn_head, tgt_len, src_len
             ).clone()
         if not self.scale_constant:
-            self.scale_constant = torch.Tensor([self.alpha]).to(dtype).to("cpu").log()
+            self.scale_constant = torch.Tensor([self.alpha]).to(dtype).cpu().log()
         
         for token_range in token_ranges:
             for bi, (ti,tj) in enumerate(token_range.tolist()):
