@@ -68,6 +68,7 @@ class PASTA(abc.ABC):
 
         assert self.scale_position in ['include', 'exclude', 'generation']
         assert self.alpha > 0
+        self.scale_constant = None
 
     def setup_model(self, model):
         """Obtain the model type and complete the configuration."""
@@ -176,14 +177,15 @@ class PASTA(abc.ABC):
             attention_mask = attention_mask.expand(
                 bsz, self.num_attn_head, tgt_len, src_len
             ).clone()
-        scale_constant = torch.Tensor([self.alpha]).to(dtype).to(device).log()
+        if not self.scale_constant:
+            self.scale_constant = torch.Tensor([self.alpha]).to(dtype).to(device).log()
         
         for bi, (ti,tj) in enumerate(token_range.tolist()):
             if self.scale_position == "include":
-                attention_mask[bi, head_idx, :, ti:tj] += scale_constant
+                attention_mask[bi, head_idx, :, ti:tj] += self.scale_constant
             else:
-                attention_mask[bi, head_idx, :, :ti] += scale_constant
-                attention_mask[bi, head_idx, :, tj:input_len] += scale_constant
+                attention_mask[bi, head_idx, :, :ti] += self.scale_constant
+                attention_mask[bi, head_idx, :, tj:input_len] += self.scale_constant
         
         if self.model_name in ["llama", "mistral", "gemma", "phi3mini"]:
             attention_mask.old_size = attention_mask.size 
@@ -221,10 +223,10 @@ class PASTA(abc.ABC):
                 while not changing other input arguments. 
         """
         if "attention_mask" in input_kwargs:
-            attention_mask = input_kwargs['attention_mask'].clone()
+            attention_mask = input_kwargs['attention_mask'].clone().detach()
         elif input_args is not None:
             arg_idx = self.ATTENTION_MASK_ARGIDX[self.model_name]
-            attention_mask = input_args[arg_idx].clone()
+            attention_mask = input_args[arg_idx].clone().detach()
         else:
             raise ValueError(f"Not found attention masks in {str(module)}")
         
@@ -234,21 +236,22 @@ class PASTA(abc.ABC):
             attention_mask = attention_mask.expand(
                 bsz, self.num_attn_head, tgt_len, src_len
             ).clone()
-        scale_constant = torch.Tensor([self.alpha]).to(dtype).to(device).log()
+        if not self.scale_constant:
+            self.scale_constant = torch.Tensor([self.alpha]).to(dtype).to(device).log()
         
         for token_range in token_ranges:
             for bi, (ti,tj) in enumerate(token_range.tolist()):
                 if self.scale_position == "include":
-                    attention_mask[bi, head_idx, :, ti:tj] += scale_constant
+                    attention_mask[bi, head_idx, :, ti:tj] += self.scale_constant
                 elif self.scale_position == "exclude":
-                    attention_mask[bi, head_idx, :, :ti] += scale_constant
-                    attention_mask[bi, head_idx, :, tj:input_len] += scale_constant
+                    attention_mask[bi, head_idx, :, :ti] += self.scale_constant
+                    attention_mask[bi, head_idx, :, tj:input_len] += self.scale_constant
                 elif self.scale_position == "generation":
-                    attention_mask[bi, head_idx, :, :input_len] += scale_constant 
+                    attention_mask[bi, head_idx, :, :input_len] += self.scale_constant 
                 else:
                     raise ValueError(f"Unexcepted {self.scale_position}.")
         if self.scale_position == "include":
-            attention_mask[:, head_idx, :, :input_len] -= scale_constant
+            attention_mask[:, head_idx, :, :input_len] -= self.scale_constant
         
         if self.model_name in ["llama", "mistral", "phi3mini"]:
             attention_mask.old_size = attention_mask.size 
