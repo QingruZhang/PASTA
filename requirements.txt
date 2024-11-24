@@ -1,5 +1,6 @@
 accelerate
 transformers==4.34.1
+torch==2.1.0
 dataclasses_json
 datasets
 invoke
